@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,6 +51,17 @@ class DocsRoutesTest {
         assertEquals(200, response.getStatusCode());
         assertEquals("application/yaml; charset=utf-8", response.getHeaders().get("Content-Type"));
         assertEquals(Files.readString(Path.of("openapi.yaml")), response.getBody());
+    }
+
+    @Test
+    void openApiFileDocumentsOnlyTheInboxPath() {
+        List<String> paths = Pattern.compile("^  (/\\S*):$", Pattern.MULTILINE)
+            .matcher(get("/openapi.yaml").getBody())
+            .results()
+            .map(match -> match.group(1))
+            .toList();
+
+        assertEquals(List.of("/inbox"), paths);
     }
 
     @Test

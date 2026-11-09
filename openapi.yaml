@@ -1,91 +1,15 @@
 openapi: 3.1.0
 info:
   title: Email Client API
-  version: 2.1.0
+  version: 2.2.0
   description: >-
-    Describes the API as it behaves today. Every request needs a valid API key
-    in the x-api-key header, except GET requests for these docs. Other paths
-    with a valid key return the status response for any method.
+    Lists emails received by the email client. Requests need a valid API key in
+    the x-api-key header.
 servers:
   - url: /
 security:
   - apiKey: []
 paths:
-  /docs:
-    get:
-      operationId: getDocsPage
-      summary: Get the Swagger UI page
-      security: []
-      responses:
-        '200':
-          description: The Swagger UI page.
-          content:
-            text/html:
-              schema:
-                type: string
-  /docs/swagger-initializer.js:
-    get:
-      operationId: getDocsInitializer
-      summary: Get the script that starts Swagger UI
-      security: []
-      responses:
-        '200':
-          description: The script.
-          content:
-            text/javascript:
-              schema:
-                type: string
-  /docs/swagger-ui-bundle.js:
-    get:
-      operationId: getDocsScript
-      summary: Get the Swagger UI script
-      security: []
-      responses:
-        '200':
-          description: The script.
-          content:
-            text/javascript:
-              schema:
-                type: string
-  /docs/swagger-ui.css:
-    get:
-      operationId: getDocsStylesheet
-      summary: Get the Swagger UI stylesheet
-      security: []
-      responses:
-        '200':
-          description: The stylesheet.
-          content:
-            text/css:
-              schema:
-                type: string
-  /openapi.yaml:
-    get:
-      operationId: getOpenApi
-      summary: Get this API description
-      security: []
-      responses:
-        '200':
-          description: This file.
-          content:
-            application/yaml:
-              schema:
-                type: string
-  /:
-    get:
-      operationId: getStatus
-      summary: Get the API status
-      responses:
-        '200':
-          description: The API is running.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MessageResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/VerificationFailed'
   /inbox:
     get:
       operationId: listInbox
@@ -98,7 +22,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/InboxResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: The API key is missing or wrong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                unauthorized:
+                  value:
+                    message: Unauthorized
         '405':
           description: The HTTP method is not allowed on this path.
           headers:
@@ -136,27 +68,6 @@ components:
       type: apiKey
       in: header
       name: x-api-key
-  responses:
-    Unauthorized:
-      description: The API key is missing or wrong.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/MessageResponse'
-          examples:
-            unauthorized:
-              value:
-                message: Unauthorized
-    VerificationFailed:
-      description: The request could not be verified.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/MessageResponse'
-          examples:
-            verificationFailure:
-              value:
-                message: Could not verify the request
   schemas:
     MessageResponse:
       type: object
@@ -166,7 +77,7 @@ components:
         message:
           type: string
           examples:
-            - Email client API is running
+            - Unauthorized
     InboxResponse:
       type: object
       required:

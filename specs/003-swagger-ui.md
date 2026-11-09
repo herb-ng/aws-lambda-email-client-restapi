@@ -29,7 +29,7 @@ Spec `001-api-authentication.md` requires a key on every path, sent in the `x-ap
 - The page never includes the key in a URL, and the function doesn't log it.
 - The page responses send a `Content-Security-Policy` header that only allows scripts and styles from the same origin, and API requests to the same origin.
 - `openapi.yaml` sets a relative server URL, so **Try it out** works without naming the function's URL.
-- `openapi.yaml` documents these routes as not needing a key.
+- `openapi.yaml` documents only `/inbox`, so that is the only path the page lists. Other routes, including the docs routes and `/`, keep working but are not documented.
 
 ## Acceptance criteria
 - Given no key, when a browser opens `/docs`, then it returns `200` and the page loads with no failed requests.
@@ -42,6 +42,7 @@ Spec `001-api-authentication.md` requires a key on every path, sent in the `x-ap
 - Given the page with a valid key entered, when **Try it out** calls `GET /inbox`, then it shows `200` and the emails.
 - Given a key entered on the page, when the page is reloaded, then the key is no longer present.
 - Given the page, when it loads, then the browser makes no requests to other origins.
+- Given the page, when it loads, then `/inbox` is the only path listed.
 
 ## Out of scope
 - Logging in to view the page
