@@ -1,8 +1,8 @@
 version: 0.2
 
 env:
-  variables:
-    ARTIFACT_KEY: email-client-restapi-1.0.0.jar
+  exported-variables:
+    - ARTIFACT_KEY
 
 phases:
   install:
@@ -15,15 +15,10 @@ phases:
   pre_build:
     commands:
       - test -n "$ARTIFACT_BUCKET"
-      - test -n "$AWS_DEFAULT_REGION"
-      - mvn test
+      - test -n "$COMMIT_ID"
+      - export ARTIFACT_KEY="email-client-restapi/$COMMIT_ID.jar"
 
   build:
     commands:
-      - mvn package -DskipTests
-      - aws s3 cp "target/$ARTIFACT_KEY" "s3://$ARTIFACT_BUCKET/$ARTIFACT_KEY"
-
-artifacts:
-  files:
-    - target/email-client-restapi-1.0.0.jar
-  discard-paths: yes
+      - mvn -B verify
+      - aws s3 cp target/email-client-restapi-1.0.0.jar "s3://$ARTIFACT_BUCKET/$ARTIFACT_KEY"

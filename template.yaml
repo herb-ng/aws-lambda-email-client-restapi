@@ -5,6 +5,10 @@ Parameters:
   ArtifactBucketName:
     Type: String
     Description: Name of the S3 bucket where the Lambda function artifact is stored.
+  ArtifactKey:
+    Type: String
+    Default: email-client-restapi-1.0.0.jar
+    Description: S3 key of the Lambda function artifact. Use a new key to deploy new code.
 
 Resources:
   EmailClientExecutionRole:
@@ -25,7 +29,7 @@ Resources:
     Properties:
       Code: 
         S3Bucket: !Ref ArtifactBucketName
-        S3Key: email-client-restapi-1.0.0.jar
+        S3Key: !Ref ArtifactKey
 
       Handler: com.example.email.EmailClientHandler::handleRequest
       Runtime: java25
@@ -45,6 +49,13 @@ Resources:
       Action: lambda:InvokeFunctionUrl
       FunctionName: !Ref EmailClientFunction
       FunctionUrlAuthType: NONE
+      Principal: '*'
+
+  EmailClientFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref EmailClientFunction
       InvokedViaFunctionUrl: true
       Principal: '*'
 

@@ -42,3 +42,27 @@ curl <FunctionUrl>
 ```
 
 The Lambda handler is `com.example.email.EmailClientHandler`.
+
+## CI/CD
+
+`infrastructure/pipeline.yaml` defines a CodePipeline that runs on every push to `main`:
+
+1. **Source:** fetches the commit through a CodeConnections GitHub connection.
+2. **Build:** runs `mvn verify` in CodeBuild and uploads the JAR to `email-client-restapi/<commit>.jar` in the artifact bucket.
+3. **Deploy:** creates or updates the `email-client-restapi` stack from `template.yaml`, using that JAR.
+
+Create the pipeline once, after pushing this file to `main`, because creating it starts a run straight away:
+
+```bash
+aws cloudformation deploy \
+  --stack-name email-client-cicd \
+  --template-file infrastructure/pipeline.yaml \
+  --capabilities CAPABILITY_IAM \
+  --parameter-overrides \
+    ConnectionArn=<connection-arn> \
+    ArtifactBucketName=<artifact-bucket>
+```
+
+Don't start the pipeline stack's name with `email-client-restapi-`. The deploy role can manage IAM roles with that prefix, which would include the pipeline's own roles.
+
+The deploy role only allows Lambda functions and roles for this stack, and the only managed policy it can attach is `AWSLambdaBasicExecutionRole`. Update it in `infrastructure/pipeline.yaml` when `template.yaml` needs other resources or permissions.
