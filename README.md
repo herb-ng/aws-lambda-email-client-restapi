@@ -49,6 +49,10 @@ aws ssm get-parameter --name /email-client-restapi/api-key --with-decryption --q
 
 The Lambda handler is `com.example.email.EmailClientHandler`.
 
+## API docs
+
+Open `<FunctionUrl>docs` in a browser for the Swagger UI page. Reading the docs doesn't need the API key. To call the API from the page, choose **Authorize** and enter the key, which isn't saved when you close or reload the page.
+
 ## CI/CD
 
 `infrastructure/pipeline.yaml` defines a CodePipeline that runs on every push to `main`:

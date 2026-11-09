@@ -16,11 +16,14 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class EmailClientHandler implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
 
     private static final String INBOX_PATH = "/inbox";
     private static final String API_KEY_HEADER = "x-api-key";
+    private static final String DOCS_CONTENT_SECURITY_POLICY = "default-src 'none'; script-src 'self'; style-src 'self'; "
+        + "img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
     // Below the 6 MB (6,291,456 byte) response limit, leaving room for the rest of the Lambda response.
     private static final int MAX_RESPONSE_BYTES = 6_000_000;
     private static final int MIN_REMAINING_MILLIS = 2_000;
@@ -44,6 +47,13 @@ public class EmailClientHandler implements RequestHandler<APIGatewayV2HTTPEvent,
 
     @Override
     public APIGatewayV2HTTPResponse handleRequest(APIGatewayV2HTTPEvent request, Context context) {
+        // The only routes that don't need the API key. See specs/003-swagger-ui.md.
+        if ("GET".equals(method(request))) {
+            Optional<DocsFiles.DocsFile> docsFile = DocsFiles.find(request.getRawPath());
+            if (docsFile.isPresent()) {
+                return docsResponse(docsFile.get());
+            }
+        }
         try {
             if (!hasValidKey(request)) {
                 return response(401, "{\"message\":\"Unauthorized\"}");
@@ -66,6 +76,18 @@ public class EmailClientHandler implements RequestHandler<APIGatewayV2HTTPEvent,
         } catch (RuntimeException | IOException e) {
             log("Inbox request failed", e);
             return response(500, "{\"message\":\"Could not read the inbox\"}");
+        }
+    }
+
+    private static APIGatewayV2HTTPResponse docsResponse(DocsFiles.DocsFile file) {
+        try {
+            return response(200, Map.of(
+                "Content-Type", file.contentType(),
+                "Content-Security-Policy", DOCS_CONTENT_SECURITY_POLICY,
+                "X-Content-Type-Options", "nosniff"), DocsFiles.read(file));
+        } catch (RuntimeException e) {
+            log("Docs request failed", e);
+            return response(500, "{\"message\":\"Could not load the docs\"}");
         }
     }
 
@@ -136,8 +158,9 @@ public class EmailClientHandler implements RequestHandler<APIGatewayV2HTTPEvent,
     }
 
     private static APIGatewayV2HTTPResponse response(int statusCode, Map<String, String> extraHeaders, String body) {
-        Map<String, String> headers = new HashMap<>(extraHeaders);
+        Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", "application/json");
+        headers.putAll(extraHeaders);
         return APIGatewayV2HTTPResponse.builder()
                 .withStatusCode(statusCode)
                 .withHeaders(headers)

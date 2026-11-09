@@ -1,14 +1,76 @@
 openapi: 3.1.0
 info:
   title: Email Client API
-  version: 2.0.0
+  version: 2.1.0
   description: >-
     Describes the API as it behaves today. Every request needs a valid API key
-    in the x-api-key header. Paths other than /inbox return the status response
-    for any method.
+    in the x-api-key header, except GET requests for these docs. Other paths
+    with a valid key return the status response for any method.
+servers:
+  - url: /
 security:
   - apiKey: []
 paths:
+  /docs:
+    get:
+      operationId: getDocsPage
+      summary: Get the Swagger UI page
+      security: []
+      responses:
+        '200':
+          description: The Swagger UI page.
+          content:
+            text/html:
+              schema:
+                type: string
+  /docs/swagger-initializer.js:
+    get:
+      operationId: getDocsInitializer
+      summary: Get the script that starts Swagger UI
+      security: []
+      responses:
+        '200':
+          description: The script.
+          content:
+            text/javascript:
+              schema:
+                type: string
+  /docs/swagger-ui-bundle.js:
+    get:
+      operationId: getDocsScript
+      summary: Get the Swagger UI script
+      security: []
+      responses:
+        '200':
+          description: The script.
+          content:
+            text/javascript:
+              schema:
+                type: string
+  /docs/swagger-ui.css:
+    get:
+      operationId: getDocsStylesheet
+      summary: Get the Swagger UI stylesheet
+      security: []
+      responses:
+        '200':
+          description: The stylesheet.
+          content:
+            text/css:
+              schema:
+                type: string
+  /openapi.yaml:
+    get:
+      operationId: getOpenApi
+      summary: Get this API description
+      security: []
+      responses:
+        '200':
+          description: This file.
+          content:
+            application/yaml:
+              schema:
+                type: string
   /:
     get:
       operationId: getStatus

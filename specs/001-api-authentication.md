@@ -1,7 +1,7 @@
 # API authentication
 
 ## Status
-Approved
+Implemented
 
 ## Goal
 Only clients with the API key can call the email client API, so that stored email is no longer public.
@@ -17,7 +17,7 @@ The Lambda Function URL uses `AuthType: NONE`, so anyone with the URL can call t
 
 ## Requirements
 - Clients send the key in an `x-api-key` request header. A key anywhere else, such as a query parameter, is ignored.
-- Every path and method requires a valid key. There are no public routes.
+- Every path and method requires a valid key. The only public routes are the `GET` docs routes listed in `003-swagger-ui.md`.
 - The header name is matched case-insensitively.
 - Authentication runs before any other request handling, including reading email and method checks.
 - Rejected requests get the same JSON error whether the key is missing or wrong.
