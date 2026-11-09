@@ -15,6 +15,12 @@ Parameters:
   InboxReadPolicyArn:
     Type: String
     Description: ARN of the managed policy that allows reading the inbox.
+  ApiKeyParameterName:
+    Type: String
+    Description: Name of the SSM SecureString parameter that holds the API key.
+  ApiKeyReadPolicyArn:
+    Type: String
+    Description: ARN of the managed policy that allows reading the API key parameter.
 
 Resources:
   EmailClientExecutionRole:
@@ -30,6 +36,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - !Ref InboxReadPolicyArn
+        - !Ref ApiKeyReadPolicyArn
 
   EmailClientFunction:
     Type: AWS::Lambda::Function
@@ -46,6 +53,7 @@ Resources:
       Environment:
         Variables:
           INBOX_BUCKET_NAME: !Ref InboxBucketName
+          API_KEY_PARAMETER_NAME: !Ref ApiKeyParameterName
 
   EmailClientFunctionUrl:
     Type: AWS::Lambda::Url

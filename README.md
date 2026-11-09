@@ -38,7 +38,13 @@ sam deploy --guided
 After deployment, use the `FunctionUrl` CloudFormation output to call the function:
 
 ```bash
-curl <FunctionUrl>
+curl -H "x-api-key: <api-key>" <FunctionUrl>
+```
+
+Every request needs the API key, which is stored as the `/email-client-restapi/api-key` SSM `SecureString` parameter. Read it with:
+
+```bash
+aws ssm get-parameter --name /email-client-restapi/api-key --with-decryption --query Parameter.Value --output text
 ```
 
 The Lambda handler is `com.example.email.EmailClientHandler`.
@@ -65,4 +71,4 @@ aws cloudformation deploy \
 
 Don't start the pipeline stack's name with `email-client-restapi-`. The deploy role can manage IAM roles with that prefix, which would include the pipeline's own roles.
 
-The deploy role only allows Lambda functions and roles for this stack, and the only managed policies it can attach are `AWSLambdaBasicExecutionRole` and the pipeline stack's inbox read policy. Update it in `infrastructure/pipeline.yaml` when `template.yaml` needs other resources or permissions.
+The deploy role only allows Lambda functions and roles for this stack, and the only managed policies it can attach are `AWSLambdaBasicExecutionRole` and the pipeline stack's inbox and API key read policies. Update it in `infrastructure/pipeline.yaml` when `template.yaml` needs other resources or permissions.

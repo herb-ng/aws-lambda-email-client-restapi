@@ -23,4 +23,4 @@ Spec files are named `specs/NNN-short-name.md`. Status is one of `Draft`, `Appro
 
 - Every push to `main` deploys to AWS with no approval step. Don't push unfinished work to `main`.
 - The pipeline does not update itself. After changing `infrastructure/pipeline.yaml`, redeploy the `email-client-cicd` stack manually.
-- `DeployRole` in `infrastructure/pipeline.yaml` only allows this stack's Lambda function and IAM role, and can only attach `AWSLambdaBasicExecutionRole` and the stack's `InboxReadPolicy`. Before adding resources or permissions to `template.yaml`, update that role and redeploy the `email-client-cicd` stack, or the Deploy stage will fail.
+- `DeployRole` in `infrastructure/pipeline.yaml` only allows this stack's Lambda function and IAM role, and can only attach `AWSLambdaBasicExecutionRole` and the stack's `InboxReadPolicy` and `ApiKeyReadPolicy`. Before adding resources or permissions to `template.yaml`, update that role and redeploy the `email-client-cicd` stack, or the Deploy stage will fail.

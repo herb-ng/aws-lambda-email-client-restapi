@@ -12,8 +12,7 @@ Amazon SES receives mail for `herbertng.com` through the `StoreInboundEmailsToS3
 Each object is one raw email message (MIME). Object names are random IDs and the objects have no useful metadata, so every field in the response must be read from the message itself.
 
 ## Decisions
-- **No authentication:** this endpoint uses the existing `AuthType: NONE` Function URL for now. Authentication is covered separately by `001-api-authentication.md`.
-- **Accepted risk:** anyone who has the URL can read every stored email, including its sender and content.
+- **Authentication:** this endpoint requires the API key described in `001-api-authentication.md`. It was first released without authentication.
 - **Email body:** `content` is the plain text body. When an email has no plain text body, `content` is the HTML source, unmodified, so a client that displays it must sanitize it.
 - **Large inboxes:** a Function URL response is limited to 6 MB and the function has a 15 second timeout. When the inbox can't be returned within those limits, the API returns an error rather than a partial list. Pagination is left for a later spec.
 
@@ -74,7 +73,6 @@ Errors use this format:
 - Given the deployed function, when `GET /inbox` is called through the Function URL, then it returns the emails stored in the bucket.
 
 ## Out of scope
-- Authentication
 - Pagination, search and filtering
 - Getting a single email by ID
 - Attachments and additional fields such as recipients

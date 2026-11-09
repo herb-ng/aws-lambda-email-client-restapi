@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -18,6 +20,7 @@ import java.util.Map;
 public class EmailClientHandler implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
 
     private static final String INBOX_PATH = "/inbox";
+    private static final String API_KEY_HEADER = "x-api-key";
     // Below the 6 MB (6,291,456 byte) response limit, leaving room for the rest of the Lambda response.
     private static final int MAX_RESPONSE_BYTES = 6_000_000;
     private static final int MIN_REMAINING_MILLIS = 2_000;
@@ -27,18 +30,28 @@ public class EmailClientHandler implements RequestHandler<APIGatewayV2HTTPEvent,
 
     private final int maxResponseBytes;
     private EmailStore store;
+    private ApiKeyProvider apiKeys;
 
     public EmailClientHandler() {
-        this(null, MAX_RESPONSE_BYTES);
+        this(null, MAX_RESPONSE_BYTES, null);
     }
 
-    EmailClientHandler(EmailStore store, int maxResponseBytes) {
+    EmailClientHandler(EmailStore store, int maxResponseBytes, ApiKeyProvider apiKeys) {
         this.store = store;
         this.maxResponseBytes = maxResponseBytes;
+        this.apiKeys = apiKeys;
     }
 
     @Override
     public APIGatewayV2HTTPResponse handleRequest(APIGatewayV2HTTPEvent request, Context context) {
+        try {
+            if (!hasValidKey(request)) {
+                return response(401, "{\"message\":\"Unauthorized\"}");
+            }
+        } catch (RuntimeException e) {
+            log("Request verification failed", e);
+            return response(500, "{\"message\":\"Could not verify the request\"}");
+        }
         if (!INBOX_PATH.equals(request.getRawPath())) {
             return response(200, "{\"message\":\"Email client API is running\"}");
         }
@@ -48,12 +61,33 @@ public class EmailClientHandler implements RequestHandler<APIGatewayV2HTTPEvent,
         try {
             return inboxResponse(context);
         } catch (InboxTooLargeException e) {
-            log(e);
+            log("Inbox request failed", e);
             return response(500, "{\"message\":\"The inbox is too large to return\"}");
         } catch (RuntimeException | IOException e) {
-            log(e);
+            log("Inbox request failed", e);
             return response(500, "{\"message\":\"Could not read the inbox\"}");
         }
+    }
+
+    private boolean hasValidKey(APIGatewayV2HTTPEvent request) {
+        if (apiKeys == null) {
+            apiKeys = SsmApiKeyProvider.fromEnvironment();
+        }
+        // Read before checking the request, so an unreadable key always fails the same way.
+        byte[] expected = apiKeys.currentKey().getBytes(StandardCharsets.UTF_8);
+        String provided = apiKeyHeader(request);
+        return provided != null && MessageDigest.isEqual(expected, provided.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String apiKeyHeader(APIGatewayV2HTTPEvent request) {
+        if (request.getHeaders() == null) {
+            return null;
+        }
+        return request.getHeaders().entrySet().stream()
+            .filter(header -> API_KEY_HEADER.equalsIgnoreCase(header.getKey()))
+            .map(Map.Entry::getValue)
+            .findFirst()
+            .orElse(null);
     }
 
     private APIGatewayV2HTTPResponse inboxResponse(Context context) throws IOException {
@@ -111,9 +145,9 @@ public class EmailClientHandler implements RequestHandler<APIGatewayV2HTTPEvent,
                 .build();
     }
 
-    // Logs only the failure, never message data.
-    private static void log(Exception e) {
-        System.err.println("Inbox request failed: " + e.getClass().getName() + ": " + e.getMessage());
+    // Logs only the failure, never message data or API keys.
+    private static void log(String summary, Exception e) {
+        System.err.println(summary + ": " + e.getClass().getName() + ": " + e.getMessage());
     }
 
     private static final class InboxTooLargeException extends RuntimeException {

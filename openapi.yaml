@@ -1,12 +1,13 @@
 openapi: 3.1.0
 info:
   title: Email Client API
-  version: 1.1.0
+  version: 2.0.0
   description: >-
-    Describes the API as it behaves today. The API has no authentication, so
-    anyone with the URL can read stored email. See
-    specs/001-api-authentication.md for the planned change. Paths other than
-    /inbox return the status response for any method.
+    Describes the API as it behaves today. Every request needs a valid API key
+    in the x-api-key header. Paths other than /inbox return the status response
+    for any method.
+security:
+  - apiKey: []
 paths:
   /:
     get:
@@ -19,6 +20,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/VerificationFailed'
   /inbox:
     get:
       operationId: listInbox
@@ -30,6 +35,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InboxResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '405':
           description: The HTTP method is not allowed on this path.
           headers:
@@ -44,13 +51,17 @@ paths:
                 $ref: '#/components/schemas/MessageResponse'
         '500':
           description: >-
-            The inbox could not be read, or is too large to return within the
-            6 MB size limit or 15 second time limit. No partial list is returned.
+            The request could not be verified, the inbox could not be read, or
+            the inbox is too large to return within the 6 MB size limit or 15
+            second time limit. No partial list is returned.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
               examples:
+                verificationFailure:
+                  value:
+                    message: Could not verify the request
                 readFailure:
                   value:
                     message: Could not read the inbox
@@ -58,6 +69,32 @@ paths:
                   value:
                     message: The inbox is too large to return
 components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+  responses:
+    Unauthorized:
+      description: The API key is missing or wrong.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MessageResponse'
+          examples:
+            unauthorized:
+              value:
+                message: Unauthorized
+    VerificationFailed:
+      description: The request could not be verified.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MessageResponse'
+          examples:
+            verificationFailure:
+              value:
+                message: Could not verify the request
   schemas:
     MessageResponse:
       type: object

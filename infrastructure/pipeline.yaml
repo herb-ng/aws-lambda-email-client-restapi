@@ -27,6 +27,10 @@ Parameters:
     Type: String
     Default: herbertng-dns-ses-stack-inboundmailbucket-qelyk2vxjy3s
     Description: S3 bucket where SES stores inbound email.
+  ApiKeyParameterName:
+    Type: String
+    Default: /email-client-restapi/api-key
+    Description: SSM SecureString parameter that holds the API key. It is created manually, outside this stack.
 
 Resources:
   # Lives in this stack rather than template.yaml, so a push to the branch can
@@ -47,6 +51,17 @@ Resources:
           - Effect: Allow
             Action: s3:GetObject
             Resource: !Sub 'arn:${AWS::Partition}:s3:::${InboxBucketName}/inbox/*'
+
+  ApiKeyReadPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Read-only access to the API key parameter.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: ssm:GetParameter
+            Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ApiKeyParameterName}'
 
   BuildRole:
     Type: AWS::IAM::Role
@@ -142,6 +157,7 @@ Resources:
                     iam:PolicyARN:
                       - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
                       - !Ref InboxReadPolicy
+                      - !Ref ApiKeyReadPolicy
               - Effect: Allow
                 Action: iam:PassRole
                 Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${LambdaStackName}-*'
@@ -294,7 +310,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM
                 RoleArn: !GetAtt DeployRole.Arn
                 TemplatePath: SourceOutput::template.yaml
-                ParameterOverrides: !Sub '{"ArtifactBucketName":"${ArtifactBucketName}","ArtifactKey":"#{BuildVariables.ARTIFACT_KEY}","InboxBucketName":"${InboxBucketName}","InboxReadPolicyArn":"${InboxReadPolicy}"}'
+                ParameterOverrides: !Sub '{"ArtifactBucketName":"${ArtifactBucketName}","ArtifactKey":"#{BuildVariables.ARTIFACT_KEY}","InboxBucketName":"${InboxBucketName}","InboxReadPolicyArn":"${InboxReadPolicy}","ApiKeyParameterName":"${ApiKeyParameterName}","ApiKeyReadPolicyArn":"${ApiKeyReadPolicy}"}'
               InputArtifacts:
                 - Name: SourceOutput
 
