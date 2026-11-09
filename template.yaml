@@ -9,6 +9,12 @@ Parameters:
     Type: String
     Default: email-client-restapi-1.0.0.jar
     Description: S3 key of the Lambda function artifact. Use a new key to deploy new code.
+  InboxBucketName:
+    Type: String
+    Description: Name of the S3 bucket where SES stores inbound email.
+  InboxReadPolicyArn:
+    Type: String
+    Description: ARN of the managed policy that allows reading the inbox.
 
 Resources:
   EmailClientExecutionRole:
@@ -23,6 +29,7 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - !Ref InboxReadPolicyArn
 
   EmailClientFunction:
     Type: AWS::Lambda::Function
@@ -36,6 +43,9 @@ Resources:
       MemorySize: 512
       Timeout: 15
       Role: !GetAtt EmailClientExecutionRole.Arn
+      Environment:
+        Variables:
+          INBOX_BUCKET_NAME: !Ref InboxBucketName
 
   EmailClientFunctionUrl:
     Type: AWS::Lambda::Url

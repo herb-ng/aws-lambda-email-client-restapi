@@ -65,4 +65,4 @@ aws cloudformation deploy \
 
 Don't start the pipeline stack's name with `email-client-restapi-`. The deploy role can manage IAM roles with that prefix, which would include the pipeline's own roles.
 
-The deploy role only allows Lambda functions and roles for this stack, and the only managed policy it can attach is `AWSLambdaBasicExecutionRole`. Update it in `infrastructure/pipeline.yaml` when `template.yaml` needs other resources or permissions.
+The deploy role only allows Lambda functions and roles for this stack, and the only managed policies it can attach are `AWSLambdaBasicExecutionRole` and the pipeline stack's inbox read policy. Update it in `infrastructure/pipeline.yaml` when `template.yaml` needs other resources or permissions.

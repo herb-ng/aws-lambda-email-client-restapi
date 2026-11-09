@@ -23,8 +23,31 @@ Parameters:
     Type: String
     Default: email-client-restapi
     Description: Name of the CloudFormation stack the pipeline deploys.
+  InboxBucketName:
+    Type: String
+    Default: herbertng-dns-ses-stack-inboundmailbucket-qelyk2vxjy3s
+    Description: S3 bucket where SES stores inbound email.
 
 Resources:
+  # Lives in this stack rather than template.yaml, so a push to the branch can
+  # use this access but can't widen it.
+  InboxReadPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Read-only access to stored inbound email.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:ListBucket
+            Resource: !Sub 'arn:${AWS::Partition}:s3:::${InboxBucketName}'
+            Condition:
+              StringLike:
+                s3:prefix: inbox/*
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub 'arn:${AWS::Partition}:s3:::${InboxBucketName}/inbox/*'
+
   BuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -76,7 +99,8 @@ Resources:
 
   # Assumed by CloudFormation to deploy template.yaml. Anyone who can push to the
   # branch controls that template, so this role only allows the resources it needs.
-  # Extend the managed policy condition when the function needs more AWS access.
+  # To give the function more AWS access, add a managed policy to this stack and
+  # to the iam:PolicyARN condition below.
   DeployRole:
     Type: AWS::IAM::Role
     Properties:
@@ -115,7 +139,9 @@ Resources:
                 Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${LambdaStackName}-*'
                 Condition:
                   ArnEquals:
-                    iam:PolicyARN: !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+                    iam:PolicyARN:
+                      - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+                      - !Ref InboxReadPolicy
               - Effect: Allow
                 Action: iam:PassRole
                 Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${LambdaStackName}-*'
@@ -268,7 +294,7 @@ Resources:
                 Capabilities: CAPABILITY_IAM
                 RoleArn: !GetAtt DeployRole.Arn
                 TemplatePath: SourceOutput::template.yaml
-                ParameterOverrides: !Sub '{"ArtifactBucketName":"${ArtifactBucketName}","ArtifactKey":"#{BuildVariables.ARTIFACT_KEY}"}'
+                ParameterOverrides: !Sub '{"ArtifactBucketName":"${ArtifactBucketName}","ArtifactKey":"#{BuildVariables.ARTIFACT_KEY}","InboxBucketName":"${InboxBucketName}","InboxReadPolicyArn":"${InboxReadPolicy}"}'
               InputArtifacts:
                 - Name: SourceOutput
 

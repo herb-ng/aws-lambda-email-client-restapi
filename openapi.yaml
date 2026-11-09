@@ -1,0 +1,120 @@
+openapi: 3.1.0
+info:
+  title: Email Client API
+  version: 1.1.0
+  description: >-
+    Describes the API as it behaves today. The API has no authentication, so
+    anyone with the URL can read stored email. See
+    specs/001-api-authentication.md for the planned change. Paths other than
+    /inbox return the status response for any method.
+paths:
+  /:
+    get:
+      operationId: getStatus
+      summary: Get the API status
+      responses:
+        '200':
+          description: The API is running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /inbox:
+    get:
+      operationId: listInbox
+      summary: List all received emails, newest first
+      responses:
+        '200':
+          description: Every stored email. Emails with no valid date come last.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InboxResponse'
+        '405':
+          description: The HTTP method is not allowed on this path.
+          headers:
+            Allow:
+              description: The allowed method.
+              schema:
+                type: string
+                const: GET
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: >-
+            The inbox could not be read, or is too large to return within the
+            6 MB size limit or 15 second time limit. No partial list is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                readFailure:
+                  value:
+                    message: Could not read the inbox
+                tooLarge:
+                  value:
+                    message: The inbox is too large to return
+components:
+  schemas:
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          examples:
+            - Email client API is running
+    InboxResponse:
+      type: object
+      required:
+        - emails
+      properties:
+        emails:
+          type: array
+          items:
+            $ref: '#/components/schemas/Email'
+    Email:
+      type: object
+      description: A field that is missing or can't be parsed is null.
+      required:
+        - from
+        - title
+        - content
+        - sentAt
+      additionalProperties: false
+      properties:
+        from:
+          type:
+            - string
+            - 'null'
+          description: The From header, including any display name.
+          examples:
+            - Jane Doe <jane@example.com>
+        title:
+          type:
+            - string
+            - 'null'
+          description: The email subject.
+          examples:
+            - Hello
+        content:
+          type:
+            - string
+            - 'null'
+          description: >-
+            The plain text body, or the unmodified HTML source when there is no
+            plain text body. Clients that display HTML must sanitize it.
+          examples:
+            - Hi there.
+        sentAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
+          description: The Date header, in UTC.
+          examples:
+            - '2026-11-09T01:16:06Z'
