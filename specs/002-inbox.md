@@ -1,7 +1,7 @@
 # List inbox emails
 
 ## Status
-Approved
+Implemented
 
 ## Goal
 A client can call `GET /inbox` to retrieve all received emails as a JSON list.
